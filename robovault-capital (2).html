@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="slides-format" content="viewport">
+    <title>RoboVault Capital — Robot-as-a-Service Asset Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --color-bg: #07101f;
+            --color-bg-deep: #030810;
+            --color-surface: #0f1d35;
+            --color-text: #e8f0ff;
+            --color-text-secondary: #b8c8e0;
+            --color-text-muted: #6a7f9a;
+            --color-accent-1: #3B82F6;
+            --color-accent-2: #06B6D4;
+            --color-accent-3: #818CF8;
+            --color-glass-bg: rgba(255,255,255,0.05);
+            --color-glass-border: rgba(255,255,255,0.09);
+            --color-vignette: rgba(0,0,0,0.5);
+            --font-display: "Instrument Serif", serif;
+            --font-body: "DM Sans", sans-serif;
+        }
+    </style>
+    <style>
+        :root{--color-bg:#07101f;--color-text:#e8f0ff;--glow-color-rgb:59,130,246;}
+        *,*::before,*::after{box-sizing:border-box;}
+        html,body{background:var(--color-bg);margin:0;}
+        body{font-family:"DM Sans",sans-serif;color:var(--color-text);overflow:hidden;height:100vh;width:100vw;}
+        .deck{width:100vw;height:100vh;position:relative;}
+        .slide{position:absolute;top:0;left:0;width:100%;height:100%;background:var(--color-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:scale(0.95);transition:opacity 0.7s ease,transform 0.7s ease;pointer-events:none;overflow:hidden;}
+        .slide.active{opacity:1;transform:scale(1);pointer-events:all;}
+        .slide > .content{position:relative;z-index:2;width:100%;max-width:1100px;padding:clamp(1.5rem,3.5vw,3rem);}
+        .nav-controls{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:100;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);padding:10px 24px;border-radius:40px;border:1px solid rgba(255,255,255,0.09);}
+        .nav-btn{width:36px;height:36px;border:none;background:rgba(255,255,255,0.07);color:#3B82F6;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.3s;}
+        .nav-btn:hover{background:rgba(59,130,246,0.2);}
+        .slide-dots{display:flex;gap:7px;}
+        .slide-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);cursor:pointer;transition:background 0.3s,transform 0.3s;}
+        .slide-dots .dot.active{background:#3B82F6;transform:scale(1.35);}
+        .slide-counter{font-size:0.75rem;color:#6a7f9a;min-width:36px;text-align:center;}
+        .reveal{opacity:0;transform:translateY(20px);}
+        @keyframes float-slow{0%{transform:translate(0,0) scale(1)}25%{transform:translate(60px,-50px) scale(1.12)}50%{transform:translate(-40px,40px) scale(0.9)}75%{transform:translate(50px,20px) scale(1.08)}100%{transform:translate(0,0) scale(1)}}
+        @keyframes float-drift{0%{transform:translate(0,0) scale(1) rotate(0deg)}33%{transform:translate(-50px,-60px) scale(1.15) rotate(3deg)}66%{transform:translate(40px,30px) scale(0.88) rotate(-2deg)}100%{transform:translate(0,0) scale(1) rotate(0deg)}}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+        @keyframes glow-pulse{0%,100%{text-shadow:0 0 20px rgba(59,130,246,0.5),0 0 40px rgba(59,130,246,0.2)}50%{text-shadow:0 0 30px rgba(59,130,246,0.8),0 0 60px rgba(59,130,246,0.3)}}
+        .gradient-mesh{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+        .blob{position:absolute;border-radius:50%;filter:blur(80px);animation:float-slow 10s ease-in-out infinite;}
+        .blob:nth-child(2){animation:float-drift 14s ease-in-out infinite;}
+        .blob:nth-child(3){animation:float-slow 18s ease-in-out infinite reverse;}
+        .text-glow{text-shadow:0 0 20px rgba(59,130,246,0.5),0 0 40px rgba(59,130,246,0.2);}
+        .stat-glow{text-shadow:0 0 30px rgba(59,130,246,0.6),0 0 60px rgba(59,130,246,0.25);animation:glow-pulse 3s ease-in-out infinite;}
+        .slide::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");background-repeat:repeat;background-size:256px 256px;opacity:0.03;mix-blend-mode:overlay;}
+        .slide::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.5) 100%);}
+        .glass{background:rgba(255,255,255,0.05);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:14px;}
+        .badge-b{background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#93C5FD;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;display:inline-block;}
+        .badge-c{background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.3);color:#67E8F9;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;display:inline-block;}
+        .badge-v{background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.3);color:#C4B5FD;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;display:inline-block;}
+        .mcard{transition:transform .3s ease,box-shadow .3s ease;}
+        .mcard:hover{transform:translateY(-5px);box-shadow:0 16px 36px rgba(59,130,246,0.13);}
+        .bar-track{background:rgba(255,255,255,0.07);border-radius:6px;height:10px;overflow:hidden;flex:1;}
+        .bar-fill{background:linear-gradient(90deg,#3B82F6,#06B6D4);border-radius:4px;height:100%;transition:width .8s ease;width:0;}
+        .tline{position:absolute;left:17px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#3B82F6,#06B6D4,#818CF8);}
+        .tdot{width:13px;height:13px;border-radius:50%;background:#3B82F6;box-shadow:0 0 10px rgba(59,130,246,0.6);flex-shrink:0;}
+        .al{display:inline-block;width:44px;height:3px;background:linear-gradient(90deg,#3B82F6,#06B6D4);border-radius:2px;margin-bottom:.85rem;}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.2s!important;}}
+    </style>
+</head>
+<body>
+<div class="mouse-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+<div class="deck">
+
+<!-- SLIDE 1: TITLE -->
+<div class="slide slide-1 active" data-slide="1">
+<div class="gradient-mesh">
+<div class="blob" style="width:550px;height:550px;top:-120px;right:-100px;background:#3B82F6;opacity:0.12;"></div>
+<div class="blob" style="width:350px;height:350px;bottom:-90px;left:-60px;background:#06B6D4;opacity:0.10;"></div>
+<div class="blob" style="width:240px;height:240px;top:38%;left:10%;background:#818CF8;opacity:0.09;"></div>
+</div>
+<canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content text-center">
+<div style="width:140px;height:140px;border-radius:50%;overflow:hidden;margin:0 auto 1rem;border:3px solid rgba(59,130,246,0.5);box-shadow:0 0 40px rgba(59,130,246,0.35);animation:float 3s ease-in-out infinite;" class="reveal">
+  <img src="https://pplx-res.cloudinary.com/image/upload/pplx_search_images/d19770f287bd6c1ac46c355748519e0c1fa83778.jpg" alt="Autonomous Mobile Robot Fleet" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+</div>
+<h1 style="font-family:'Instrument Serif',serif;font-size:clamp(2.6rem,6vw,4.8rem);font-weight:700;background:linear-gradient(135deg,#3B82F6,#06B6D4,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.02em;margin-bottom:.5rem;line-height:1.1;" class="reveal">RoboVault Capital</h1>
+<p style="font-size:clamp(.8rem,1.3vw,1.1rem);color:#6a7f9a;letter-spacing:6px;text-transform:uppercase;font-weight:400;margin-bottom:1.6rem;" class="reveal">Robot-as-a-Service Asset Management</p>
+<div style="display:flex;gap:.85rem;justify-content:center;flex-wrap:wrap;" class="reveal">
+<span class="badge-b">Powered by Unsorted AI</span>
+<span class="badge-c">Asset Management Agreement</span>
+<span class="badge-v">Investor Presentation 2026</span>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 2: THE PROBLEM -->
+<div class="slide slide-2" data-slide="2">
+<div class="gradient-mesh">
+<div class="blob" style="width:380px;height:380px;top:-80px;right:-70px;background:#3B82F6;opacity:0.08;"></div>
+<div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#818CF8;opacity:0.07;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">The Problem</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.5rem;line-height:1.2;" class="reveal">Industries Face a Robotics Adoption Crisis</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;">
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #EF4444;">
+<div style="font-size:1.8rem;margin-bottom:.4rem;">💸</div>
+<h3 style="font-size:1rem;font-weight:700;margin-bottom:.35rem;color:#FCA5A5;">Prohibitive CapEx</h3>
+<p style="font-size:.85rem;color:#b8c8e0;line-height:1.5;">Industrial AMRs cost $50,000–$250,000+ per unit. Mid-market operators cannot justify upfront capital or build an in-house robotics engineering team.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #F59E0B;">
+<div style="font-size:1.8rem;margin-bottom:.4rem;">⚠️</div>
+<h3 style="font-size:1rem;font-weight:700;margin-bottom:.35rem;color:#FCD34D;">Operational Complexity</h3>
+<p style="font-size:.85rem;color:#b8c8e0;line-height:1.5;">Fleet management, firmware updates, route optimization, and maintenance require specialized expertise most facilities simply don't have.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #8B5CF6;">
+<div style="font-size:1.8rem;margin-bottom:.4rem;">🔒</div>
+<h3 style="font-size:1rem;font-weight:700;margin-bottom:.35rem;color:#C4B5FD;">Trapped Capital in Depreciating Assets</h3>
+<p style="font-size:.85rem;color:#b8c8e0;line-height:1.5;">Robots depreciate rapidly as AI and hardware improve. Buyers hold obsolete assets while competitors upgrade on modern platforms.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #06B6D4;">
+<div style="font-size:1.8rem;margin-bottom:.4rem;">📉</div>
+<h3 style="font-size:1rem;font-weight:700;margin-bottom:.35rem;color:#67E8F9;">Labor Shortage Accelerating</h3>
+<p style="font-size:.85rem;color:#b8c8e0;line-height:1.5;">Manufacturing and logistics face a global shortage of 8M+ workers by 2030. Automation is critical — but ownership friction stalls deployment.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 3: SOLUTION -->
+<div class="slide slide-3" data-slide="3">
+<div class="gradient-mesh">
+<div class="blob" style="width:400px;height:400px;top:-100px;left:-70px;background:#06B6D4;opacity:0.09;"></div>
+<div class="blob" style="width:280px;height:280px;bottom:-60px;right:-40px;background:#3B82F6;opacity:0.08;"></div>
+</div>
+<canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Our Solution</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:.5rem;" class="reveal">The RoboVault Model: Own, Manage, Deploy</h2>
+<p style="color:#b8c8e0;font-size:.95rem;margin-bottom:1.5rem;max-width:700px;" class="reveal">We are a <strong style="color:#67E8F9;">robotics asset management company</strong> — we acquire Unsorted AI robot fleets under a master agreement, hold them on our balance sheet as income-generating assets, and lease them to enterprise clients via fully-managed RaaS subscriptions.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;">
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.2rem;margin-bottom:.6rem;">🏦</div>
+<h3 style="font-size:.95rem;font-weight:700;margin-bottom:.35rem;color:#93C5FD;">Asset Ownership</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.5;">RoboVault acquires Unsorted AI Robots under a Master Asset Management Agreement. Robots are held on balance sheet as revenue-generating, depreciable assets.</p>
+</div>
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.2rem;margin-bottom:.6rem;">⚙️</div>
+<h3 style="font-size:.95rem;font-weight:700;margin-bottom:.35rem;color:#67E8F9;">Managed Operations</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.5;">Fleet deployment, remote monitoring, firmware updates, and maintenance SLAs — managed by our ops team and Unsorted AI's support infrastructure.</p>
+</div>
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.2rem;margin-bottom:.6rem;">📋</div>
+<h3 style="font-size:.95rem;font-weight:700;margin-bottom:.35rem;color:#C4B5FD;">RaaS Subscriptions</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.5;">Clients access proven AMR fleets with no CapEx via monthly subscriptions — scalable deployment in 7–14 days with predictable, all-in pricing.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 4: MARKET OPPORTUNITY -->
+<div class="slide slide-4" data-slide="4">
+<div class="gradient-mesh">
+<div class="blob" style="width:360px;height:360px;top:-80px;right:-70px;background:#818CF8;opacity:0.09;"></div>
+<div class="blob" style="width:260px;height:260px;bottom:-60px;left:-50px;background:#06B6D4;opacity:0.08;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Market Opportunity</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.3rem;" class="reveal">$14.5B Market by 2035 — Growing at 21.2% CAGR</h2>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem;margin-bottom:1.2rem;">
+<div class="glass mcard p-4 text-center reveal">
+<div style="font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#3B82F6,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">$2.21B</div>
+<div style="font-size:.72rem;color:#6a7f9a;margin-top:.25rem;text-transform:uppercase;letter-spacing:1px;">2025 RaaS Market</div>
+</div>
+<div class="glass mcard p-4 text-center reveal">
+<div style="font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#06B6D4,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">$14.5B</div>
+<div style="font-size:.72rem;color:#6a7f9a;margin-top:.25rem;text-transform:uppercase;letter-spacing:1px;">2035 Forecast</div>
+</div>
+<div class="glass mcard p-4 text-center reveal">
+<div style="font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#818CF8,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">21.2%</div>
+<div style="font-size:.72rem;color:#6a7f9a;margin-top:.25rem;text-transform:uppercase;letter-spacing:1px;">CAGR 2026–2035</div>
+</div>
+<div class="glass mcard p-4 text-center reveal">
+<div style="font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#3B82F6,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">8M+</div>
+<div style="font-size:.72rem;color:#6a7f9a;margin-top:.25rem;text-transform:uppercase;letter-spacing:1px;">Worker Gap by 2030</div>
+</div>
+</div>
+<div class="glass p-4 reveal">
+<p style="font-size:.84rem;color:#b8c8e0;margin-bottom:.7rem;font-weight:600;">RaaS Adoption by Industry — 2025 Revenue Share</p>
+<div style="display:flex;flex-direction:column;gap:.55rem;">
+<div style="display:flex;align-items:center;gap:.9rem;"><span style="width:130px;font-size:.8rem;color:#b8c8e0;">Logistics</span><div class="bar-track"><div class="bar-fill" data-width="78"></div></div><span style="font-size:.8rem;color:#93C5FD;min-width:48px;">$600M</span></div>
+<div style="display:flex;align-items:center;gap:.9rem;"><span style="width:130px;font-size:.8rem;color:#b8c8e0;">Manufacturing</span><div class="bar-track"><div class="bar-fill" data-width="62" style="background:linear-gradient(90deg,#06B6D4,#818CF8);"></div></div><span style="font-size:.8rem;color:#67E8F9;min-width:48px;">~$450M</span></div>
+<div style="display:flex;align-items:center;gap:.9rem;"><span style="width:130px;font-size:.8rem;color:#b8c8e0;">Pharma / Life Sci</span><div class="bar-track"><div class="bar-fill" data-width="43" style="background:linear-gradient(90deg,#818CF8,#3B82F6);"></div></div><span style="font-size:.8rem;color:#C4B5FD;min-width:48px;">~$310M</span></div>
+<div style="display:flex;align-items:center;gap:.9rem;"><span style="width:130px;font-size:.8rem;color:#b8c8e0;">Healthcare / R&D</span><div class="bar-track"><div class="bar-fill" data-width="32" style="background:linear-gradient(90deg,#3B82F6,#06B6D4);"></div></div><span style="font-size:.8rem;color:#93C5FD;min-width:48px;">~$240M</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 5: THE ASSET — CARTKEN ROBOTS -->
+<div class="slide slide-5" data-slide="5">
+<div class="gradient-mesh">
+<div class="blob" style="width:390px;height:390px;top:-90px;right:-70px;background:#3B82F6;opacity:0.09;"></div>
+<div class="blob" style="width:270px;height:270px;bottom:-60px;left:-50px;background:#06B6D4;opacity:0.07;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">The Asset — Unsorted AI Robot Fleet</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:.45rem;" class="reveal">Production-Grade Robots. Proven at Scale.</h2>
+<p style="color:#b8c8e0;font-size:.92rem;margin-bottom:1rem;" class="reveal">Under our Master Asset Management Agreement with Unsorted AI, RoboVault acquires and deploys three core robot models suited for distinct customer verticals.</p>
+<div style="border-radius:12px;overflow:hidden;height:130px;margin-bottom:1rem;position:relative;" class="reveal">
+  <img src="https://pplx-res.cloudinary.com/image/upload/pplx_search_images/d19770f287bd6c1ac46c355748519e0c1fa83778.jpg" alt="Unsorted AI AMR Fleet in warehouse" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;">
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,16,31,0.85) 0%,rgba(7,16,31,0.3) 60%,rgba(7,16,31,0.6) 100%);"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 1.5rem;">
+    <div>
+      <p style="font-size:.72rem;color:#67E8F9;letter-spacing:4px;text-transform:uppercase;margin-bottom:.25rem;">Unsorted AI · Production Fleet</p>
+      <p style="font-size:1.1rem;font-weight:700;color:#e8f0ff;">Autonomous. Scalable. Asset-Grade.</p>
+    </div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;">
+<div class="glass mcard p-5 reveal" style="border-top:2px solid #3B82F6;">
+<div style="height:70px;border-radius:8px;overflow:hidden;margin-bottom:.6rem;">
+  <img src="https://pplx-res.cloudinary.com/image/upload/pplx_search_images/d19770f287bd6c1ac46c355748519e0c1fa83778.jpg" alt="Unsorted Hauler" style="width:100%;height:100%;object-fit:cover;object-position:center 60%;">
+</div>
+<div class="badge-b" style="margin-bottom:.55rem;">Unsorted Hauler</div>
+<ul style="list-style:none;padding:0;margin:0;font-size:.82rem;color:#b8c8e0;line-height:1.9;">
+<li>⚡ Payload: 660 lbs / 300 kg</li>
+<li>⚡ Runtime: 16+ hours continuous</li>
+<li>⚡ All-terrain: indoor &amp; outdoor</li>
+<li>⚡ Deploy in 7 days, no infra</li>
+</ul>
+<p style="font-size:.78rem;color:#6a7f9a;margin-top:.65rem;font-style:italic;">Manufacturing · Warehousing · Distribution</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-top:2px solid #06B6D4;">
+<div style="height:70px;border-radius:8px;overflow:hidden;margin-bottom:.6rem;">
+  <img src="https://pplx-res.cloudinary.com/image/upload/pplx_search_images/5928b0d25d0bf9e4def31ca01b9c595ff0084380.jpg" alt="Unsorted Temp Control" style="width:100%;height:100%;object-fit:cover;object-position:center 30%;">
+</div>
+<div class="badge-c" style="margin-bottom:.55rem;">Unsorted Temp Control</div>
+<ul style="list-style:none;padding:0;margin:0;font-size:.82rem;color:#b8c8e0;line-height:1.9;">
+<li>❄️ Temperature-stable payload</li>
+<li>❄️ Payload: 660 lbs / 300 kg</li>
+<li>❄️ Runtime: 16+ hours</li>
+<li>❄️ Protects samples &amp; reagents</li>
+</ul>
+<p style="font-size:.78rem;color:#6a7f9a;margin-top:.65rem;font-style:italic;">Pharma · Life Sciences · R&amp;D Labs</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-top:2px solid #818CF8;">
+<div style="height:70px;border-radius:8px;overflow:hidden;margin-bottom:.6rem;">
+  <img src="https://pplx-res.cloudinary.com/image/upload/pplx_search_images/7cdd9f8bf5a1fb9c435a188dd91ee33ea37073ae.jpg" alt="Unsorted Courier" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+</div>
+<div class="badge-v" style="margin-bottom:.55rem;">Unsorted Courier</div>
+<ul style="list-style:none;padding:0;margin:0;font-size:.82rem;color:#b8c8e0;line-height:1.9;">
+<li>📮 Payload: 44 lbs / 20 kg</li>
+<li>📮 Runtime: 13+ hours</li>
+<li>📮 Secured delivery compartment</li>
+<li>📮 High maneuverability</li>
+</ul>
+<p style="font-size:.78rem;color:#6a7f9a;margin-top:.65rem;font-style:italic;">Corporate Campuses · Light Logistics</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 6: PERFORMANCE METRICS -->
+<div class="slide slide-6" data-slide="6">
+<div class="gradient-mesh">
+<div class="blob" style="width:430px;height:430px;top:-110px;left:-80px;background:#06B6D4;opacity:0.09;"></div>
+<div class="blob" style="width:290px;height:290px;bottom:-70px;right:-50px;background:#3B82F6;opacity:0.08;"></div>
+</div>
+<canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Proven Performance</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.3rem;" class="reveal">Unsorted AI's Validated Operational Metrics</h2>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin-bottom:1.1rem;">
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.6rem;font-weight:800;background:linear-gradient(135deg,#3B82F6,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">60%</div>
+<div style="font-size:.83rem;color:#b8c8e0;margin-top:.25rem;">Reduction in labor costs per deployment</div>
+</div>
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.6rem;font-weight:800;background:linear-gradient(135deg,#06B6D4,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">99%</div>
+<div style="font-size:.83rem;color:#b8c8e0;margin-top:.25rem;">Order fulfillment reliability rate</div>
+</div>
+<div class="glass mcard p-5 text-center reveal">
+<div style="font-size:2.6rem;font-weight:800;background:linear-gradient(135deg,#818CF8,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" class="stat-glow">1 Yr</div>
+<div style="font-size:.83rem;color:#b8c8e0;margin-top:.25rem;">Average client ROI payback period</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;">
+<div class="glass p-4 reveal">
+<p style="font-size:.85rem;font-weight:600;color:#93C5FD;margin-bottom:.6rem;">Operational Benefits (Per Deployment)</p>
+<ul style="list-style:none;padding:0;margin:0;font-size:.83rem;color:#b8c8e0;line-height:2;">
+<li>✅ 30+ miles of employee walking saved daily</li>
+<li>✅ 20% of work time reclaimed for higher-value tasks</li>
+<li>✅ Infrastructure-free — live in 7 days</li>
+<li>✅ 24/7 all-weather, all-terrain operation</li>
+</ul>
+</div>
+<div class="glass p-4 reveal">
+<p style="font-size:.85rem;font-weight:600;color:#67E8F9;margin-bottom:.6rem;">Technology Differentiators</p>
+<ul style="list-style:none;padding:0;margin:0;font-size:.83rem;color:#b8c8e0;line-height:2;">
+<li>🔷 Camera-first AI — no costly LiDAR</li>
+<li>🔷 HD Maps — operates in GPS-denied zones</li>
+<li>🔷 Elevator, gate &amp; door integration</li>
+<li>🔷 LTE/4G remote teleoperation override</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 7: BUSINESS MODEL -->
+<div class="slide slide-7" data-slide="7">
+<div class="gradient-mesh">
+<div class="blob" style="width:370px;height:370px;top:-85px;right:-70px;background:#3B82F6;opacity:0.09;"></div>
+<div class="blob" style="width:260px;height:260px;bottom:-55px;left:-50px;background:#818CF8;opacity:0.08;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Business Model</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.3rem;" class="reveal">Three Interlocking Revenue Streams</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.1rem;margin-bottom:1.1rem;">
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #3B82F6;">
+<div style="font-size:1.7rem;margin-bottom:.45rem;">📅</div>
+<h3 style="font-size:.95rem;font-weight:700;color:#93C5FD;margin-bottom:.35rem;">Monthly RaaS Subscription</h3>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">Per-robot monthly fees covering hardware access, fleet management, remote monitoring, SLA guarantees, and software updates. Core ARR driver.</p>
+<p style="font-size:.85rem;font-weight:700;color:#3B82F6;margin-top:.5rem;">Recurring ARR Core</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #06B6D4;">
+<div style="font-size:1.7rem;margin-bottom:.45rem;">🔧</div>
+<h3 style="font-size:.95rem;font-weight:700;color:#67E8F9;margin-bottom:.35rem;">Maintenance &amp; Support Tiers</h3>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">Standard (48hr response), Pro (24hr on-site), Enterprise (4hr guaranteed). Premium SLA tiers generate 15–25% incremental margin uplift.</p>
+<p style="font-size:.85rem;font-weight:700;color:#06B6D4;margin-top:.5rem;">Value-Add Margin</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #818CF8;">
+<div style="font-size:1.7rem;margin-bottom:.45rem;">📊</div>
+<h3 style="font-size:.95rem;font-weight:700;color:#C4B5FD;margin-bottom:.35rem;">Analytics &amp; Data Layer</h3>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">Fleet performance KPIs, operational efficiency dashboards, delivery analytics, and aggregated industry benchmarks — sold as a managed software layer.</p>
+<p style="font-size:.85rem;font-weight:700;color:#818CF8;margin-top:.5rem;">High-Margin Software</p>
+</div>
+</div>
+<div class="glass p-4 reveal" style="background:rgba(59,130,246,.06);">
+<div style="display:flex;gap:1.8rem;align-items:center;flex-wrap:wrap;">
+<div style="font-size:.84rem;color:#b8c8e0;"><span style="color:#93C5FD;font-weight:600;">Term:</span> 3-year base with renewal options</div>
+<div style="font-size:.84rem;color:#b8c8e0;"><span style="color:#67E8F9;font-weight:600;">Pricing:</span> Monthly per-robot fee + fleet volume discounts</div>
+<div style="font-size:.84rem;color:#b8c8e0;"><span style="color:#C4B5FD;font-weight:600;">Ownership:</span> RoboVault retains 100% asset ownership</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 8: ASSET MANAGEMENT AGREEMENT -->
+<div class="slide slide-8" data-slide="8">
+<div class="gradient-mesh">
+<div class="blob" style="width:400px;height:400px;top:-95px;left:-70px;background:#818CF8;opacity:0.08;"></div>
+<div class="blob" style="width:270px;height:270px;bottom:-60px;right:-50px;background:#3B82F6;opacity:0.07;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Agreement Structure</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.3rem;" class="reveal">Master Asset Management Agreement with Unsorted AI</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+<div style="display:flex;flex-direction:column;gap:.9rem;">
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #3B82F6;">
+<h4 style="font-size:.92rem;font-weight:700;color:#93C5FD;margin-bottom:.28rem;">🤝 OEM Supply Agreement</h4>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">RoboVault enters a volume purchase and management agreement with Unsorted AI to acquire AMR fleets at institutional pricing with ongoing software, support, and hardware supply.</p>
+</div>
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #06B6D4;">
+<h4 style="font-size:.92rem;font-weight:700;color:#67E8F9;margin-bottom:.28rem;">⚡ Fleet Deployment Rights</h4>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">RoboVault holds exclusive management and sub-leasing rights for acquired fleet assets, deploying under 3–5 year client service agreements with full transferability provisions.</p>
+</div>
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #818CF8;">
+<h4 style="font-size:.92rem;font-weight:700;color:#C4B5FD;margin-bottom:.28rem;">🔄 Upgrade &amp; Refresh Path</h4>
+<p style="font-size:.82rem;color:#b8c8e0;line-height:1.5;">Technology refresh clauses allow fleet upgrades as new models launch. Unsorted Mover (3,300 lb capacity, coming soon) adds heavy-load industrial vertical access.</p>
+</div>
+</div>
+<div class="glass p-5 reveal" style="background:rgba(59,130,246,.06);">
+<h4 style="font-size:.95rem;font-weight:700;color:#93C5FD;margin-bottom:.9rem;">Key Agreement Terms</h4>
+<div style="display:flex;flex-direction:column;gap:.65rem;">
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.45rem;font-size:.83rem;"><span style="color:#6a7f9a;">Asset Ownership</span><span style="color:#93C5FD;font-weight:600;">RoboVault 100%</span></div>
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.45rem;font-size:.83rem;"><span style="color:#6a7f9a;">Maintenance Provider</span><span style="color:#67E8F9;font-weight:600;">Unsorted AI + RoboVault Ops</span></div>
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.45rem;font-size:.83rem;"><span style="color:#6a7f9a;">Software &amp; Firmware</span><span style="color:#C4B5FD;font-weight:600;">Unsorted AI Fleet Manager</span></div>
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.45rem;font-size:.83rem;"><span style="color:#6a7f9a;">Client Contract Term</span><span style="color:#93C5FD;font-weight:600;">3–5 Year Agreements</span></div>
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:.45rem;font-size:.83rem;"><span style="color:#6a7f9a;">Uptime SLA Guarantee</span><span style="color:#67E8F9;font-weight:600;">99% Guaranteed</span></div>
+<div style="display:flex;justify-content:space-between;font-size:.83rem;"><span style="color:#6a7f9a;">Deployment Timeline</span><span style="color:#C4B5FD;font-weight:600;">7–14 Days</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 9: GO-TO-MARKET -->
+<div class="slide slide-9" data-slide="9">
+<div class="gradient-mesh">
+<div class="blob" style="width:390px;height:390px;top:-90px;right:-75px;background:#06B6D4;opacity:0.09;"></div>
+<div class="blob" style="width:260px;height:260px;bottom:-60px;left:-50px;background:#3B82F6;opacity:0.07;"></div>
+</div>
+<canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Go-To-Market</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.4rem;" class="reveal">Phased Market Entry — Three Horizons</h2>
+<div style="position:relative;padding-left:2.8rem;">
+<div class="tline"></div>
+<div style="display:flex;flex-direction:column;gap:1rem;">
+<div style="display:flex;gap:.9rem;align-items:flex-start;" class="reveal">
+<div class="tdot" style="margin-top:4px;"></div>
+<div class="glass mcard p-4 flex-1">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.28rem;"><h4 style="font-size:.92rem;font-weight:700;color:#93C5FD;">Phase 1 — Anchor Clients</h4><span class="badge-b">Q1–Q2 2026</span></div>
+<p style="font-size:.82rem;color:#b8c8e0;">Deploy 20–40 robots across 3–5 pharma and manufacturing anchor clients. Establish operational playbook, document ROI, build reference case studies. Primary focus on Unsorted Temp Control in Life Sciences vertical.</p>
+</div>
+</div>
+<div style="display:flex;gap:.9rem;align-items:flex-start;" class="reveal">
+<div class="tdot" style="margin-top:4px;background:#06B6D4;box-shadow:0 0 10px rgba(6,182,212,.6);"></div>
+<div class="glass mcard p-4 flex-1">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.28rem;"><h4 style="font-size:.92rem;font-weight:700;color:#67E8F9;">Phase 2 — Sector Expansion</h4><span class="badge-c">Q3–Q4 2026</span></div>
+<p style="font-size:.82rem;color:#b8c8e0;">Expand into warehouse and distribution and corporate campus verticals. Scale fleet to 100–200 active units. Launch analytics platform. Target Fortune 500 enterprise accounts across North America.</p>
+</div>
+</div>
+<div style="display:flex;gap:.9rem;align-items:flex-start;" class="reveal">
+<div class="tdot" style="margin-top:4px;background:#818CF8;box-shadow:0 0 10px rgba(129,140,248,.6);"></div>
+<div class="glass mcard p-4 flex-1">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.28rem;"><h4 style="font-size:.92rem;font-weight:700;color:#C4B5FD;">Phase 3 — Platform Scale</h4><span class="badge-v">2027+</span></div>
+<p style="font-size:.82rem;color:#b8c8e0;">500+ robot fleet. Multi-region deployment. Introduce Unsorted Mover (3,300 lbs). White-label fleet management API. Asset-backed securitization of contracted RaaS revenue streams.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 10: FINANCIAL PROJECTIONS -->
+<div class="slide slide-10" data-slide="10">
+<div class="gradient-mesh">
+<div class="blob" style="width:400px;height:400px;top:-100px;left:-75px;background:#3B82F6;opacity:0.09;"></div>
+<div class="blob" style="width:270px;height:270px;bottom:-60px;right:-50px;background:#06B6D4;opacity:0.07;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Financial Projections</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.2rem;" class="reveal">5-Year Fleet Build &amp; Revenue Ramp</h2>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;margin-bottom:1.1rem;">
+<div class="glass mcard p-3 text-center reveal" style="border-top:2px solid #3B82F6;">
+<div style="font-size:.85rem;font-weight:700;color:#6a7f9a;">2026</div>
+<div style="font-size:1.5rem;font-weight:800;color:#93C5FD;margin:.25rem 0;" class="stat-glow">50</div>
+<div style="font-size:.68rem;color:#6a7f9a;">robots</div>
+<div style="font-size:.85rem;font-weight:700;color:#3B82F6;margin-top:.3rem;">$1.2M ARR</div>
+</div>
+<div class="glass mcard p-3 text-center reveal" style="border-top:2px solid #3B82F6;">
+<div style="font-size:.85rem;font-weight:700;color:#6a7f9a;">2027</div>
+<div style="font-size:1.5rem;font-weight:800;color:#93C5FD;margin:.25rem 0;" class="stat-glow">150</div>
+<div style="font-size:.68rem;color:#6a7f9a;">robots</div>
+<div style="font-size:.85rem;font-weight:700;color:#3B82F6;margin-top:.3rem;">$4.2M ARR</div>
+</div>
+<div class="glass mcard p-3 text-center reveal" style="border-top:2px solid #06B6D4;">
+<div style="font-size:.85rem;font-weight:700;color:#6a7f9a;">2028</div>
+<div style="font-size:1.5rem;font-weight:800;color:#67E8F9;margin:.25rem 0;" class="stat-glow">320</div>
+<div style="font-size:.68rem;color:#6a7f9a;">robots</div>
+<div style="font-size:.85rem;font-weight:700;color:#06B6D4;margin-top:.3rem;">$9.8M ARR</div>
+</div>
+<div class="glass mcard p-3 text-center reveal" style="border-top:2px solid #818CF8;">
+<div style="font-size:.85rem;font-weight:700;color:#6a7f9a;">2029</div>
+<div style="font-size:1.5rem;font-weight:800;color:#C4B5FD;margin:.25rem 0;" class="stat-glow">550</div>
+<div style="font-size:.68rem;color:#6a7f9a;">robots</div>
+<div style="font-size:.85rem;font-weight:700;color:#818CF8;margin-top:.3rem;">$18.5M ARR</div>
+</div>
+<div class="glass mcard p-3 text-center reveal" style="border-top:2px solid #818CF8;">
+<div style="font-size:.85rem;font-weight:700;color:#6a7f9a;">2030</div>
+<div style="font-size:1.5rem;font-weight:800;color:#C4B5FD;margin:.25rem 0;" class="stat-glow">800</div>
+<div style="font-size:.68rem;color:#6a7f9a;">robots</div>
+<div style="font-size:.85rem;font-weight:700;color:#818CF8;margin-top:.3rem;">$30M+ ARR</div>
+</div>
+</div>
+<div class="glass p-4 reveal" style="background:rgba(59,130,246,.05);">
+<p style="font-size:.84rem;color:#b8c8e0;margin-bottom:.65rem;font-weight:600;">Key Financial Assumptions</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;text-align:center;">
+<div><div style="font-size:1.1rem;font-weight:800;color:#93C5FD;">$2,000–3,500</div><div style="font-size:.72rem;color:#6a7f9a;margin-top:.2rem;">Per Robot / Month (Subscription)</div></div>
+<div><div style="font-size:1.1rem;font-weight:800;color:#67E8F9;">~65%</div><div style="font-size:.72rem;color:#6a7f9a;margin-top:.2rem;">Gross Margin Target at Scale</div></div>
+<div><div style="font-size:1.1rem;font-weight:800;color:#C4B5FD;">3–5 yr</div><div style="font-size:.72rem;color:#6a7f9a;margin-top:.2rem;">Avg Client Contract Length</div></div>
+<div><div style="font-size:1.1rem;font-weight:800;color:#93C5FD;">&lt;12 mo</div><div style="font-size:.72rem;color:#6a7f9a;margin-top:.2rem;">Asset Payback Period per Robot</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 11: COMPETITIVE ADVANTAGE -->
+<div class="slide slide-11" data-slide="11">
+<div class="gradient-mesh">
+<div class="blob" style="width:380px;height:380px;top:-85px;right:-65px;background:#818CF8;opacity:0.09;"></div>
+<div class="blob" style="width:260px;height:260px;bottom:-55px;left:-45px;background:#06B6D4;opacity:0.08;"></div>
+</div>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">Competitive Advantage</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:1.3rem;" class="reveal">Why RoboVault Wins</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;">
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #3B82F6;">
+<h3 style="font-size:.95rem;font-weight:700;color:#93C5FD;margin-bottom:.4rem;">🏦 Asset Management Expertise</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.55;">We apply proven institutional asset management frameworks — from MediaValet-style digital asset tracking to real-asset leasing structures — to physical robotics fleets. Full lifecycle value capture.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #06B6D4;">
+<h3 style="font-size:.95rem;font-weight:700;color:#67E8F9;margin-bottom:.4rem;">🤖 Production-Ready Technology</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.55;">Unsorted AI Robots are commercially deployed today with a top-10 global pharma company and multiple manufacturing customers. No R&amp;D risk — proven, field-tested hardware.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #818CF8;">
+<h3 style="font-size:.95rem;font-weight:700;color:#C4B5FD;margin-bottom:.4rem;">📋 Long-Term Contracted Revenue</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.55;">3–5 year contracts create highly predictable, bankable ARR. Unlike traditional robot vendors, RoboVault earns from every robot over its entire operational lifecycle — not just at point of sale.</p>
+</div>
+<div class="glass mcard p-5 reveal" style="border-left:3px solid #3B82F6;">
+<h3 style="font-size:.95rem;font-weight:700;color:#93C5FD;margin-bottom:.4rem;">⚡ Speed-to-Value Moat</h3>
+<p style="font-size:.83rem;color:#b8c8e0;line-height:1.55;">7-day deployment, no infrastructure investment, and managed SLAs mean clients achieve ROI in under 12 months — creating high retention, low churn, and a defensible flywheel of fleet expansion.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 12: USE OF PROCEEDS -->
+<div class="slide slide-12" data-slide="12">
+<div class="gradient-mesh">
+<div class="blob" style="width:400px;height:400px;top:-95px;left:-70px;background:#3B82F6;opacity:0.09;"></div>
+<div class="blob" style="width:270px;height:270px;bottom:-60px;right:-50px;background:#818CF8;opacity:0.08;"></div>
+</div>
+<canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content">
+<div class="al reveal"></div>
+<p style="font-size:.82rem;color:#6a7f9a;letter-spacing:4px;text-transform:uppercase;margin-bottom:.4rem;" class="reveal">The Ask</p>
+<h2 style="font-family:'Instrument Serif',serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:700;margin-bottom:.4rem;" class="reveal">Raising $3M Seed Round</h2>
+<p style="color:#b8c8e0;font-size:.92rem;margin-bottom:1.4rem;" class="reveal">To acquire the initial Unsorted AI fleet, launch operations, and reach cash-flow positive by Q4 2026.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+<div style="display:flex;flex-direction:column;gap:.9rem;">
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #3B82F6;">
+<div style="display:flex;justify-content:space-between;align-items:center;"><h4 style="font-size:.92rem;font-weight:700;color:#93C5FD;">🤖 Fleet Acquisition</h4><span style="font-size:1rem;font-weight:800;color:#3B82F6;">$500K (16.7%)</span></div>
+<p style="font-size:.8rem;color:#b8c8e0;margin-top:.25rem;">Initial purchase of Unsorted AI Hauler and Temp Control units for Phase 1 anchor client deployments.</p>
+</div>
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #06B6D4;">
+<div style="display:flex;justify-content:space-between;align-items:center;"><h4 style="font-size:.92rem;font-weight:700;color:#67E8F9;">⚙️ Operations &amp; Deployment</h4><span style="font-size:1rem;font-weight:800;color:#06B6D4;">$500K (16.7%)</span></div>
+<p style="font-size:.8rem;color:#b8c8e0;margin-top:.25rem;">Fleet management infrastructure, SLA monitoring systems, operations staff, and site commissioning costs.</p>
+</div>
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #818CF8;">
+<div style="display:flex;justify-content:space-between;align-items:center;"><h4 style="font-size:.92rem;font-weight:700;color:#C4B5FD;">📈 Sales &amp; Marketing</h4><span style="font-size:1rem;font-weight:800;color:#818CF8;">$500K (16.7%)</span></div>
+<p style="font-size:.8rem;color:#b8c8e0;margin-top:.25rem;">Enterprise sales team, trade show presence (Pharma, Manufacturing verticals), and BD relationships.</p>
+</div>
+<div class="glass mcard p-4 reveal" style="border-left:3px solid #3B82F6;">
+<div style="display:flex;justify-content:space-between;align-items:center;"><h4 style="font-size:.92rem;font-weight:700;color:#93C5FD;">🏢 G&amp;A &amp; Working Capital</h4><span style="font-size:1rem;font-weight:800;color:#3B82F6;">$500K (16.7%)</span></div>
+<p style="font-size:.8rem;color:#b8c8e0;margin-top:.25rem;">Legal, regulatory, public company costs, and 90-day cash buffer.</p>
+</div>
+</div>
+<div class="glass p-5 reveal" style="background:rgba(59,130,246,.06);">
+<h4 style="font-size:.95rem;font-weight:700;color:#93C5FD;margin-bottom:1rem;">Milestones at $3M</h4>
+<div style="display:flex;flex-direction:column;gap:.65rem;font-size:.83rem;">
+<div style="display:flex;gap:.75rem;align-items:flex-start;"><span style="color:#3B82F6;font-size:1.1rem;line-height:1.2;">✓</span><div><span style="color:#93C5FD;font-weight:600;">Q2 2026:</span><span style="color:#b8c8e0;"> 2 signed anchor clients, 15 robots live</span></div></div>
+<div style="display:flex;gap:.75rem;align-items:flex-start;"><span style="color:#06B6D4;font-size:1.1rem;line-height:1.2;">✓</span><div><span style="color:#67E8F9;font-weight:600;">Q3 2026:</span><span style="color:#b8c8e0;"> $400K ARR run rate, 3rd client signed</span></div></div>
+<div style="display:flex;gap:.75rem;align-items:flex-start;"><span style="color:#818CF8;font-size:1.1rem;line-height:1.2;">✓</span><div><span style="color:#C4B5FD;font-weight:600;">Q4 2026:</span><span style="color:#b8c8e0;"> Break-even unit economics, Series A prep begins</span></div></div>
+<div style="display:flex;gap:.75rem;align-items:flex-start;"><span style="color:#3B82F6;font-size:1.1rem;line-height:1.2;">✓</span><div><span style="color:#93C5FD;font-weight:600;">Q2 2027:</span><span style="color:#b8c8e0;"> 50+ robots, $1.8M ARR, Series A of $8M+</span></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SLIDE 13: THANK YOU -->
+<div class="slide slide-13" data-slide="13">
+<div class="gradient-mesh">
+<div class="blob" style="width:520px;height:520px;top:-130px;right:-100px;background:#3B82F6;opacity:0.13;"></div>
+<div class="blob" style="width:360px;height:360px;bottom:-90px;left:-70px;background:#06B6D4;opacity:0.10;"></div>
+<div class="blob" style="width:220px;height:220px;top:35%;left:8%;background:#818CF8;opacity:0.09;"></div>
+</div>
+<canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+<div class="content text-center">
+<div style="font-size:76px;margin-bottom:.8rem;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 24px rgba(59,130,246,.5));" class="reveal">🚀</div>
+<h1 style="font-family:'Instrument Serif',serif;font-size:clamp(2.4rem,5.5vw,4.2rem);font-weight:700;background:linear-gradient(135deg,#3B82F6,#06B6D4,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem;line-height:1.1;" class="reveal">Let's Build the Future<br>of Robotics Together</h1>
+<p style="font-size:clamp(.8rem,1.3vw,1.1rem);color:#6a7f9a;letter-spacing:5px;text-transform:uppercase;margin-bottom:1.8rem;" class="reveal">RoboVault Capital — 2026</p>
+<div style="display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.6rem;" class="reveal">
+<div class="glass p-4" style="min-width:200px;text-align:center;">
+<div style="font-size:.75rem;color:#6a7f9a;text-transform:uppercase;letter-spacing:2px;margin-bottom:.3rem;">Raising</div>
+<div style="font-size:1.4rem;font-weight:800;color:#93C5FD;" class="stat-glow">$3M Seed</div>
+</div>
+<div class="glass p-4" style="min-width:200px;text-align:center;">
+<div style="font-size:.75rem;color:#6a7f9a;text-transform:uppercase;letter-spacing:2px;margin-bottom:.3rem;">2030 Target</div>
+<div style="font-size:1.4rem;font-weight:800;color:#67E8F9;" class="stat-glow">$30M+ ARR</div>
+</div>
+<div class="glass p-4" style="min-width:200px;text-align:center;">
+<div style="font-size:.75rem;color:#6a7f9a;text-transform:uppercase;letter-spacing:2px;margin-bottom:.3rem;">Market CAGR</div>
+<div style="font-size:1.4rem;font-weight:800;color:#C4B5FD;" class="stat-glow">21.2%</div>
+</div>
+</div>
+<p style="font-size:.9rem;color:#b8c8e0;" class="reveal">Powered by <strong style="color:#93C5FD;">Unsorted AI Technology</strong> &nbsp;|&nbsp; Contact: <strong style="color:#67E8F9;">invest@robovaultcapital.com</strong></p>
+</div>
+</div>
+
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-controls">
+<button class="nav-btn" onclick="changeSlide(-1)">&#8249;</button>
+<div class="slide-dots" id="dots"></div>
+<button class="nav-btn" onclick="changeSlide(1)">&#8250;</button>
+<span class="slide-counter" id="counter">1 / 13</span>
+</div>
+
+<script>
+let current = 1;
+const total = document.querySelectorAll(".slide").length;
+const dotsContainer = document.getElementById("dots");
+const counter = document.getElementById("counter");
+for (let i = 1; i <= total; i++) { const dot = document.createElement("div"); dot.className = "dot" + (i === 1 ? " active" : ""); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+
+function goToSlide(n) {
+  const prev = document.querySelector(".slide.active");
+  const next = document.querySelector(".slide[data-slide='" + n + "']");
+  if (prev) prev.classList.remove("active");
+  if (next) { next.classList.add("active"); animateSlide(next); }
+  current = n; updateNav();
+}
+function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+function updateNav() { document.querySelectorAll(".dot").forEach((d, i) => { d.classList.toggle("active", i + 1 === current); }); counter.textContent = current + " / " + total; }
+document.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); changeSlide(1); } if (e.key === "ArrowLeft") { e.preventDefault(); changeSlide(-1); } });
+let touchStartX = 0;
+document.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener("touchend", (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+
+function animateSlide(slide) {
+  slide.querySelectorAll(".reveal").forEach((el, i) => {
+    el.style.transition = "none"; el.style.opacity = "0"; el.style.transform = "translateY(20px)"; el.offsetHeight;
+    const delay = i * 0.08;
+    el.style.transition = "opacity 0.35s ease " + delay + "s, transform 0.35s ease " + delay + "s";
+    el.style.opacity = "1"; el.style.transform = "translateY(0px)";
+  });
+  animateSlideEffects(slide);
+}
+
+function animateSlideEffects(slide) {
+  slide.querySelectorAll(".bar-fill:not(.fill-init)").forEach((bar, i) => {
+    bar.classList.add("fill-init");
+    bar.style.width = "0%"; bar.style.transition = "width 0.6s ease " + (i * 0.1) + "s"; bar.offsetHeight; bar.style.width = bar.dataset.width + "%";
+  });
+  slide.querySelectorAll("[data-count]:not(.counted)").forEach(el => {
+    el.classList.add("counted");
+    const target = parseInt(el.dataset.count);
+    const suffix = el.dataset.suffix || "", prefix = el.dataset.prefix || "";
+    let cur = 0; const step = target / 40;
+    const timer = setInterval(() => { cur += step; if (cur >= target) { cur = target; clearInterval(timer); } el.textContent = prefix + Math.round(cur).toLocaleString() + suffix; }, 30);
+  });
+}
+
+document.addEventListener("mousemove", (e) => {
+  const spotlight = document.querySelector(".mouse-spotlight");
+  if (spotlight) spotlight.style.background = "radial-gradient(600px circle at " + e.clientX + "px " + e.clientY + "px, rgba(59,130,246,0.06), transparent 40%)";
+});
+
+(function() {
+  let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  document.addEventListener("mousemove", (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+  (function tick() {
+    const ox = (mouseX - cx) / cx, oy = (mouseY - cy) / cy;
+    document.querySelectorAll(".deco-shape").forEach(shape => { const speed = parseFloat(shape.dataset.speed) || 0.03; shape.style.transform = "translate(" + (ox * speed * 100) + "px, " + (oy * speed * 100) + "px)"; });
+    requestAnimationFrame(tick);
+  })();
+})();
+
+window.initParticles = function(canvas, options) {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+  const interactive = options.interactive !== false;
+  const count = options.count || (interactive ? 55 : 18);
+  let mx = -1000, my = -1000;
+  const particles = Array.from({ length: count }, () => ({
+    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+    size: Math.random() * 2.5 + 0.8, alpha: Math.random() * 0.35 + 0.1
+  }));
+  if (interactive) {
+    canvas.addEventListener("mousemove", (e) => { const rect = canvas.getBoundingClientRect(); mx = e.clientX - rect.left; my = e.clientY - rect.top; });
+    canvas.addEventListener("mouseleave", () => { mx = -1000; my = -1000; });
+  }
+  (function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      if (interactive) { const dx = p.x - mx, dy = p.y - my, dist = Math.sqrt(dx * dx + dy * dy); if (dist < 120) { const force = (120 - dist) / 120 * 2; p.vx += (dx / dist) * force * 0.1; p.vy += (dy / dist) * force * 0.1; } }
+      p.vx *= 0.98; p.vy *= 0.98; p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(59,130,246," + p.alpha + ")"; ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  })();
+};
+document.querySelectorAll(".particle-canvas").forEach(c => window.initParticles(c, { interactive: true, count: 55 }));
+document.querySelectorAll(".particle-canvas-ambient").forEach(c => window.initParticles(c, { interactive: false, count: 18 }));
+try { animateSlide(document.querySelector(".slide.active")); } catch(e) { console.warn("Init error:", e); }
+</script>
+</body>
+</html>
